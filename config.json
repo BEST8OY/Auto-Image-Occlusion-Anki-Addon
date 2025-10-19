@@ -1,0 +1,9 @@
+{
+    "tesseract_lang": "eng",
+    "min_confidence": 48,
+    "min_width": 4,
+    "min_height": 4,
+    "min_area_percent": 0.0001,
+    "button_shortcut": "Ctrl+Shift+A",
+    "vertical_merge_factor": 1.5
+}
