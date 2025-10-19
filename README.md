@@ -2,11 +2,11 @@
 
 > Automatically detect and occlude text regions in images using Tesseract OCR
 
-![Anki Version](https://img.shields.io/badge/anki-2.1.60+-green)
+![Anki Version](https://img.shields.io/badge/anki-25.09+-green)
 ![Python](https://img.shields.io/badge/python-3.9+-blue)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-orange)
 
-Automatically detect text regions in images and create Image Occlusion shapes with a single click. Works seamlessly with Anki's native Image Occlusion feature (Anki 2.1.60+).
+Automatically detect text regions in images and create Image Occlusion shapes with a single click. Works seamlessly with Anki's native Image Occlusion feature (Anki 25.09+).
 
 **Inspired by**: [logseq-anki-sync](https://github.com/debanjandhar12/logseq-anki-sync)
 
@@ -18,7 +18,7 @@ Automatically detect text regions in images and create Image Occlusion shapes wi
 - 🎨 **Native Integration**: Seamlessly integrates with Anki's Image Occlusion toolbar
 - ⌨️ **Keyboard Shortcut**: Quick access via `Ctrl+Shift+A`
 - 🧠 **Smart Detection**: Line-based detection with PSM 11 (sparse text)
-- 🎯 **Collision Detection**: Automatically skips existing occlusions (like logseq-anki-sync)
+- 🎯 **Collision Detection**: Automatically skips existing occlusions
 - 📏 **Text Length Filtering**: Intelligently filters based on average line length
 - 🔧 **Configurable**: Adjust confidence, size thresholds, and filters
 - 🚀 **Persistent UI**: Button automatically reappears when selecting new images
@@ -30,8 +30,8 @@ Automatically detect text regions in images and create Image Occlusion shapes wi
 
 ### Prerequisites
 
-#### 1. Anki 2.1.60 or Later
-Ensure you have Anki 2.1.60+ which includes native Image Occlusion support.
+#### 1. Anki 25.09 or Later
+Ensure you have Anki 25.09+ which includes native Image Occlusion support.
 
 #### 2. Tesseract OCR
 Install Tesseract OCR on your system:
@@ -107,15 +107,8 @@ tesseract --list-langs
 }
 ```
 
-#### 3. Python Packages
-The addon will attempt to install these automatically on first run:
-- `pytesseract` - Python wrapper for Tesseract
-- `Pillow` - Image processing library
-
-If automatic installation fails, install manually:
-```bash
-pip install pytesseract Pillow
-```
+#### 3. Python Packages (**MOST IMPORTANT PART**)
+You have to install pytesseract and pillow in Anki installation environment
 
 ### Install Addon
 
@@ -179,7 +172,7 @@ pip install pytesseract Pillow
     "min_height": 4,
     "min_area_percent": 0.0001,
     "button_shortcut": "Ctrl+Shift+A",
-    "vertical_merge_factor": 1.5
+    "vertical_merge_factor": 0.65
 }
 ```
 
@@ -193,7 +186,7 @@ pip install pytesseract Pillow
 | `min_height` | `4` | Minimum box height in pixels |
 | `min_area_percent` | `0.0001` | Minimum box area as % of image (0.01 = 1%) |
 | `button_shortcut` | `"Ctrl+Shift+A"` | Keyboard shortcut for auto-detection |
-| `vertical_merge_factor` | `1.5` | Merge lines within 1.5x average height (handles multi-line labels) |
+| `vertical_merge_factor` | `0.65` | Merge lines within 1.5x average height (handles multi-line labels) |
 
 ### Configuration Examples
 
@@ -260,7 +253,7 @@ Uses Tesseract's PSM 11 (sparse text) with line-based grouping for reliable dete
 **Detection Process:**
 1. Detects text using sparse text detection (PSM 11)
 2. Groups words by text line for granular detection
-3. Merges vertically adjacent lines (for multi-line labels like "Abductor pollicis\n       brevis muscle")
+3. Merges vertically adjacent lines
 4. Calculates average text length for intelligent filtering
 5. Filters by confidence threshold (min 48)
 6. Filters by text length (ignores lines shorter than avg/2 or 3 chars)
@@ -436,32 +429,6 @@ Contributions are welcome! To contribute:
 
 ### Icons
 - Magic wand icon from [Material Design Icons](https://materialdesignicons.com/) (mdiAutoFix)
-
----
-
-## 📝 Changelog
-
-### Version 1.0.0 (2025-10-19)
-
-**Initial Release**
-- ✨ Auto-detection with Tesseract OCR
-- 🎨 Native Anki UI integration
-- ⌨️ Keyboard shortcut (Ctrl+Shift+A)
-- 🧠 Line-based detection with PSM 11 (sparse text)
-- 🎯 Collision detection (inspired by logseq-anki-sync)
-- 📏 Text length filtering for better accuracy
-- 🚀 Persistent button across image selections
-- 📦 Modular Python architecture
-- 🛡️ Clean JavaScript with single namespace
-- 🔒 Comprehensive error handling
-- 📚 Complete documentation
-
-**Technical Notes:**
-- Uses PSM 11 (SPARSE_TEXT) with line-based grouping for reliable detection
-- Collision detection implemented in both backend (Python) and frontend (JavaScript)
-- Simplified single-mode design for ease of use
-
----
 
 ## 📄 License
 
