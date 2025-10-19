@@ -110,6 +110,12 @@ tesseract --list-langs
 #### 3. Python Packages (**MOST IMPORTANT PART**)
 You have to install pytesseract and pillow in Anki installation environment
 
+``` pip install pytesseract pillow ```
+
+https://github.com/user-attachments/assets/59e74349-f3e1-4617-801e-00794da74eed
+
+
+
 ### Install Addon
 
 **Method 1: AnkiWeb (Recommended)**
@@ -380,26 +386,6 @@ anki addon/
 - Decrease `min_confidence` (try 35-40)
 - Decrease `min_area_percent` (try 0.00001)
 - Improve image quality/contrast
-
----
-
-## 📊 Performance
-
-### Typical Processing Times
-
-| Image Size | OCR Time | Regions Detected |
-|------------|----------|------------------|
-| 800×600 | 2-3s | 10-20 |
-| 1200×800 | 3-5s | 20-40 |
-| 1920×1080 | 5-8s | 30-60 |
-| 4K (3840×2160) | 15-20s | 100+ |
-
-### Optimization Tips
-
-1. **Resize Images:** Keep images under 1920px width for best performance
-2. **Increase Confidence:** Filters out noise, faster processing
-3. **Crop Images:** Remove unnecessary whitespace before importing
-4. **Improve Contrast:** Better contrast = faster, more accurate OCR
 
 ---
 
