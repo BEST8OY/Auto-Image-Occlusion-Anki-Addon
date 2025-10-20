@@ -108,11 +108,32 @@ tesseract --list-langs
 ```
 
 #### 3. Python Packages (**MOST IMPORTANT PART**)
-You have to install pytesseract and pillow in Anki installation environment
 
-``` pip install pytesseract pillow ```
+You need to install `pytesseract` and `pillow` in Anki's bundled Python environment (venv).
 
-https://github.com/user-attachments/assets/59e74349-f3e1-4617-801e-00794da74eed
+**Locate AnkiProgramFiles:**
+
+- **Windows**: `%LOCALAPPDATA%\Programs\Anki\AnkiProgramFiles`
+- **macOS**: `~/Library/Application Support/AnkiProgramFiles`
+- **Linux**: `~/.local/share/AnkiProgramFiles`
+
+**Install Packages:**
+
+Open a terminal/command prompt and run:
+
+**Windows:**
+```cmd
+"%LOCALAPPDATA%\Programs\Anki\AnkiProgramFiles\.venv\Scripts\pip.exe" install pytesseract pillow
+```
+
+**macOS/Linux:**
+```bash
+~/Library/Application\ Support/AnkiProgramFiles/.venv/bin/pip install pytesseract pillow
+# or on Linux:
+~/.local/share/AnkiProgramFiles/.venv/bin/pip install pytesseract pillow
+```
+
+
 
 
 
