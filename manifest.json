@@ -1,6 +1,6 @@
 {
-    "name": "Auto Occlusion",
-    "package": "auto_occlusion",
+    "name": "Auto Image Occlusion",
+    "package": "auto_image_occlusion",
     "author": "BEST8OY",
     "version": "1.0.0"
 }
