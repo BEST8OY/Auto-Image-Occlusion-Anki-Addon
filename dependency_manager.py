@@ -7,7 +7,6 @@ import sys
 import os
 import subprocess
 import json
-from pathlib import Path
 
 
 def get_libs_dir():
@@ -46,13 +45,23 @@ def check_package_installed(package_name):
     """Check if a package is already installed in libs"""
     libs_dir = get_libs_dir()
     
-    try:
-        # Try to import from libs
-        spec = __import__('importlib.util').util.find_spec(package_name)
-        if spec and libs_dir in str(spec.origin or ''):
-            return True
-    except (ImportError, AttributeError, ValueError):
-        pass
+    # If libs directory doesn't exist yet, packages aren't installed
+    if not os.path.isdir(libs_dir):
+        return False
+    
+    # Normalize package name for comparison
+    package_normalized = package_name.lower().replace('-', '_')
+    
+    # Check for dist-info directory (most reliable indicator)
+    # dist-info format: package_name-version.dist-info or package-name-version.dist-info
+    for item in os.listdir(libs_dir):
+        if item.endswith('.dist-info'):
+            # Extract package name (before the version)
+            dist_name = item.replace('.dist-info', '').rsplit('-', 1)[0]
+            dist_name_normalized = dist_name.lower().replace('-', '_')
+            
+            if dist_name_normalized == package_normalized:
+                return True
     
     return False
 
@@ -78,22 +87,26 @@ def ensure_dependencies():
     all_installed = True
     
     for package_name, version_spec in packages.items():
-        try:
-            # Try importing to see if it's already available
-            __import__(package_name)
-            # If we get here, it's installed
-            continue
-        except ImportError:
-            # Package not installed, need to download it
-            all_installed = False
-            print(f"[Auto Image Occlusion] Installing {package_name}...")
-            
+        # Check if package is already installed in libs
+        if check_package_installed(package_name):
+            # Verify by trying to import it (use PIL for Pillow, etc)
+            import_name = "PIL" if package_name == "Pillow" else package_name
             try:
-                install_package(package_name, version_spec, libs_dir)
-                print(f"[Auto Image Occlusion] ✓ {package_name} installed successfully")
-            except Exception as e:
-                print(f"[Auto Image Occlusion] ✗ Failed to install {package_name}: {e}")
-                return False
+                __import__(import_name)
+                continue
+            except ImportError:
+                pass
+        
+        # Package not installed, need to download it
+        all_installed = False
+        print(f"[Auto Image Occlusion] Installing {package_name}...")
+        
+        try:
+            install_package(package_name, version_spec, libs_dir)
+            print(f"[Auto Image Occlusion] ✓ {package_name} installed successfully")
+        except Exception as e:
+            print(f"[Auto Image Occlusion] ✗ Failed to install {package_name}: {e}")
+            return False
     
     if all_installed:
         print("[Auto Image Occlusion] All dependencies are available")
@@ -127,25 +140,3 @@ def install_package(package_name, version_spec, target_dir):
     
     if result.returncode != 0:
         raise Exception(f"pip install failed: {result.stderr}")
-
-
-def create_requirements_file():
-    """Create a requirements.json file in the addon directory"""
-    req_file = get_requirements_file()
-    
-    if os.path.exists(req_file):
-        return  # Already exists
-    
-    requirements = {
-        "packages": {
-            "Pillow": ">=10.0.0",
-            "pytesseract": ">=0.3.10"
-        },
-        "description": "Dependencies for Auto Image Occlusion Addon"
-    }
-    
-    try:
-        with open(req_file, 'w') as f:
-            json.dump(requirements, f, indent=2)
-    except Exception as e:
-        print(f"[Auto Image Occlusion] Could not create requirements.json: {e}")
