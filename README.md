@@ -168,20 +168,7 @@ Open a terminal/command prompt and run:
 
 ### Visual Guide
 
-```
-┌─────────────────────────────────────┐
-│  Image Occlusion Toolbar            │
-│  [Rect] [Ellipse] [...] [🪄]        │  ← Magic wand button
-└─────────────────────────────────────┘
-            ↓ Click or Ctrl+Shift+A
-┌─────────────────────────────────────┐
-│  Your image with auto-detected      │
-│  ┌──────┐  ┌─────┐  ┌─────────┐    │
-│  │Text 1│  │Text2│  │  Text 3 │    │
-│  └──────┘  └─────┘  └─────────┘    │
-│                                     │
-└─────────────────────────────────────┘
-```
+https://github.com/user-attachments/assets/6bca1367-ffa5-4022-8630-d684a5c5242a
 
 ---
 
@@ -213,7 +200,7 @@ Open a terminal/command prompt and run:
 | `min_height` | `4` | Minimum box height in pixels |
 | `min_area_percent` | `0.0001` | Minimum box area as % of image (0.01 = 1%) |
 | `button_shortcut` | `"Ctrl+Shift+A"` | Keyboard shortcut for auto-detection |
-| `vertical_merge_factor` | `0.65` | Merge lines within 1.5x average height (handles multi-line labels) |
+| `vertical_merge_factor` | `0.65` | Merge lines within 0.65x average height (handles multi-line labels) |
 
 ### Configuration Examples
 
