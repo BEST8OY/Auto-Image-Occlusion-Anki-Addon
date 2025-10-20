@@ -56,7 +56,7 @@ brew install tesseract
 Tesseract supports 100+ languages. To use non-English languages, you need to download additional language data files.
 
 **Download Language Data:**
-- Visit [tessdata repository](https://github.com/tesseract-ocr/tessdata)
+- Visit [tessdata repository](https://github.com/tesseract-ocr/tessdata) or [tessdata_best repository](https://github.com/tesseract-ocr/tessdata_best)
 - Download `.traineddata` files for your language(s)
 - Common examples: `spa.traineddata` (Spanish), `fra.traineddata` (French), `deu.traineddata` (German), `chi_sim.traineddata` (Chinese Simplified)
 
