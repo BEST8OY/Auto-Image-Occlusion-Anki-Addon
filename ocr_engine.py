@@ -189,13 +189,13 @@ def merge_vertically_close_regions(regions, config):
             vertical_gap = r2['top'] - (r1['top'] + r1['height'])
             
             # Only consider if vertically close
-            #if vertical_gap < 0 or vertical_gap >= vertical_threshold:
-            #    continue
+            if vertical_gap < 0 or vertical_gap >= vertical_threshold:
+                continue
             
             # Only consider if vertically close (or overlapping)
             # Allow negative gaps (vertical overlap) for stacked text in same column
-            if vertical_gap >= vertical_threshold:
-                continue
+            #if vertical_gap >= vertical_threshold:
+            #    continue
 
 
             # Get horizontal spans
