@@ -14,9 +14,10 @@ dist/
 downloads/
 eggs/
 .eggs/
+lib/
 lib64/
-# Note: libs/ is intentionally NOT ignored - it contains bundled dependencies
-# lib/ is ignored for development use, but libs/ is committed to the repo
+# Note: libs/ is created on first startup, so we don't commit it
+libs/
 parts/
 sdist/
 var/

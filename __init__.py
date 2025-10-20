@@ -4,10 +4,25 @@
 import sys
 import os
 
-# Add bundled libs to Python path
-libs_path = os.path.join(os.path.dirname(__file__), "libs")
-if libs_path not in sys.path:
-    sys.path.insert(0, libs_path)
+# Ensure dependencies are available (download on first startup if needed)
+from .dependency_manager import ensure_dependencies
+
+if not ensure_dependencies():
+    # Show error dialog if dependencies failed to install
+    try:
+        from aqt import mw
+        import aqt.utils
+        
+        def show_error():
+            aqt.utils.showCritical(
+                "Auto Image Occlusion Error",
+                "Failed to install required dependencies.<br>"
+                "Please check your internet connection and restart Anki."
+            )
+        
+        mw.taskTimer.singleShot(2000, show_error)
+    except Exception as e:
+        print(f"[Auto Image Occlusion] Failed to initialize addon: {e}")
 
 from . import addon
 
