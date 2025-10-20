@@ -1,4 +1,4 @@
-# Auto Image Occlusion Detection Addon
+# Auto Occlusion Anki Addon
 # Adds automatic occlusion detection to Anki's native image occlusion editor
 
 from . import addon
