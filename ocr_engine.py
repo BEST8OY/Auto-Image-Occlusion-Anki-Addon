@@ -9,7 +9,7 @@ from aqt import mw
 def perform_ocr(image):
     """
     Perform OCR on an image using pytesseract.
-    Uses PSM 11 (sparse text) with line-based grouping for reliable detection.
+    Uses PSM 12 (sparse text with OSD) with line-based grouping for reliable detection.
     
     Args:
         image: PIL Image object
@@ -35,13 +35,13 @@ def perform_ocr(image):
 def perform_ocr_line_mode(image, config):
     """
     Line-based detection using sparse text mode (inspired by logseq-anki-sync).
-    Uses PSM 11 (sparse text) with line-based grouping for reliable detection.
+    Uses PSM 12 (sparse text with OSD) with line-based grouping for reliable detection.
     Good for: All use cases - scattered text, dense documents, diagrams with labels
     """
     import pytesseract
     
     # Run Tesseract OCR in sparse text mode (detects text blocks)
-    # PSM 11 = Sparse text. Find as much text as possible in no particular order
+    # PSM 12 = Sparse text with OSD. Find as much text as possible in no particular order
     data = pytesseract.image_to_data(
         image,
         output_type=pytesseract.Output.DICT,
@@ -56,8 +56,8 @@ def perform_ocr_line_mode(image, config):
     min_width = config.get('min_width', 4)
     min_height = config.get('min_height', 4)
     
-    # Group by line (using line_num from OCR) - more reliable than par_num with PSM 11
-    # PSM 11 (SPARSE_TEXT) doesn't always create meaningful paragraph boundaries
+    # Group by line (using line_num from OCR) - more reliable than par_num with PSM 12
+    # PSM 12 (SPARSE_TEXT with OSD) doesn't always create meaningful paragraph boundaries
     # Line-based grouping gives us individual text lines, which we can then filter
     # This is closer to how tesseract.js actually behaves with sparse text
     lines = {}

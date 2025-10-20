@@ -17,7 +17,7 @@ Automatically detect text regions in images and create Image Occlusion shapes wi
 - 🪄 **One-Click Detection**: Auto-detect text regions with a single button click
 - 🎨 **Native Integration**: Seamlessly integrates with Anki's Image Occlusion toolbar
 - ⌨️ **Keyboard Shortcut**: Quick access via `Ctrl+Shift+A`
-- 🧠 **Smart Detection**: Line-based detection with PSM 11 (sparse text)
+- 🧠 **Smart Detection**: Line-based detection with PSM 12 (sparse text with OSD)
 - 🎯 **Collision Detection**: Automatically skips existing occlusions
 - 📏 **Text Length Filtering**: Intelligently filters based on average line length
 - 🔧 **Configurable**: Adjust confidence, size thresholds, and filters
@@ -246,7 +246,7 @@ https://github.com/user-attachments/assets/59e74349-f3e1-4617-801e-00794da74eed
 
 ## 🧠 How It Works
 
-Uses Tesseract's PSM 11 (sparse text) with line-based grouping for reliable detection.
+Uses Tesseract's PSM 12 (sparse text with OSD) with line-based grouping for reliable detection.
 
 **Best for:**
 - ✅ Scattered text elements (diagrams, labels)
@@ -257,7 +257,7 @@ Uses Tesseract's PSM 11 (sparse text) with line-based grouping for reliable dete
 - ✅ Flowcharts and infographics
 
 **Detection Process:**
-1. Detects text using sparse text detection (PSM 11)
+1. Detects text using sparse text detection (PSM 12 — sparse text with OSD)
 2. Groups words by text line for granular detection
 3. Merges vertically adjacent lines
 4. Calculates average text length for intelligent filtering
@@ -267,7 +267,7 @@ Uses Tesseract's PSM 11 (sparse text) with line-based grouping for reliable dete
 8. Creates individual occlusions per text block
 
 **Technical Details:**
-- Uses PSM 11 (sparse text) - optimized for finding scattered text
+ - Uses PSM 12 (sparse text with OSD) - optimized for finding scattered text
 - Line-based grouping provides reliable granularity
 - Vertical merging handles multi-line labels (e.g., anatomy diagrams)
 - Each text block (single or multi-line) becomes a separate occlusion
@@ -286,7 +286,7 @@ anki addon/
 ├── editor_integration.py       # JavaScript injection logic
 ├── js_builder.py               # JavaScript code generator
 ├── message_handler.py          # Python ↔ JavaScript communication
-├── ocr_engine.py               # Tesseract OCR wrapper (PSM 11, line-based)
+├── ocr_engine.py               # Tesseract OCR wrapper (PSM 12, line-based)
 ├── config.json                 # Default configuration
 ├── config.md                   # Configuration documentation
 ├── manifest.json               # Addon metadata
@@ -317,7 +317,7 @@ anki addon/
    ↓
 7. Python:
    - Decode image
-   - Run Tesseract OCR (PSM 11 - sparse text)
+   -   - Run Tesseract OCR (PSM 12 - sparse text with OSD)
    - Group text by lines
    - Calculate average text length
    - Filter by confidence, size, and text length

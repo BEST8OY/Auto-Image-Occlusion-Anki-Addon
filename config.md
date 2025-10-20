@@ -111,7 +111,7 @@ Access via: **Tools → Add-ons → [Auto Image Occlusion] → Config**
 ## Technical Details
 
 **Detection Method:**
-- Uses PSM 11 (SPARSE_TEXT) - optimized for scattered text
+- Uses PSM 12 (SPARSE_TEXT with OSD) - optimized for scattered text
 - Line-based grouping for reliable granularity
 - Vertical merging for multi-line labels (configurable)
 - Each text block (single or multi-line) becomes a separate occlusion
