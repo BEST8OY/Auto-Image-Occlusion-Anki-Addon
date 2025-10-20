@@ -121,7 +121,7 @@ https://github.com/user-attachments/assets/59e74349-f3e1-4617-801e-00794da74eed
 **Method 1: AnkiWeb (Recommended)**
 1. Go to **Tools → Add-ons**
 2. Click **Get Add-ons...**
-3. Enter code: `[CODE WILL BE ADDED AFTER ANKIWEB SUBMISSION]`
+3. Enter code: `1414192727`
 4. Restart Anki
 
 **Method 2: Manual Installation**
