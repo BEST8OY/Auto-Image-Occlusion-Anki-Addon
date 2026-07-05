@@ -4,12 +4,12 @@ Editor Integration Module
 Handles injection of JavaScript into Anki's Image Occlusion editor.
 
 Architecture:
-- Hook: gui_hooks.editor_did_load_note
-- Timing: 100ms delay via QTimer for editor readiness
+- Hook: gui_hooks.editor_mask_editor_did_load_image (precise timing)
+- Timing: 50ms delay after image loads (Svelte components need hydration)
 - Caching: JavaScript built once and reused
 - Error handling: Exceptions logged to console
 
-The JavaScript is injected every time an IO note is loaded, but the JS code
+The JavaScript is injected every time an IO image loads, but the JS code
 itself is idempotent and handles re-injection gracefully.
 """
 
@@ -24,36 +24,32 @@ from .js_builder import build_injection_javascript
 _cached_js_code = None
 
 
-def on_editor_load_note(editor: Editor) -> None:
+def on_mask_editor_image_loaded(editor: Editor, path_or_nid) -> None:
     """
-    Hook handler: Called when a note is loaded in the editor.
-    
-    Injects JavaScript to add auto-detect button if it's an Image Occlusion note.
-    
+    Hook handler: Called when the IO mask editor finishes loading an image.
+
+    This is more precise than editor_did_load_note because it fires exactly
+    when the IO editor is ready (canvas and maskEditor are available).
+
     Args:
         editor: Anki Editor instance
-        
+        path_or_nid: Image path (str) for new notes, or NoteId for existing notes
+
     Flow:
-        1. Check if note is Image Occlusion type
-        2. Build/fetch JavaScript code (cached after first build)
-        3. Delay 100ms for editor readiness
-        4. Inject JavaScript via editor.web.eval()
+        1. Build/fetch JavaScript code (cached after first build)
+        2. Short delay for Svelte component hydration
+        3. Inject JavaScript via editor.web.eval()
     """
     global _cached_js_code
-    
-    # Only inject for Image Occlusion notes
-    if not editor.note:
-        return
-    
-    if not editor.current_notetype_is_image_occlusion():
-        return
-    
+
     # Build JavaScript once and cache it (config rarely changes)
     if _cached_js_code is None:
         config = mw.addonManager.getConfig(__name__) or {}
         _cached_js_code = build_injection_javascript(config)
-    
-    # Delay injection slightly to ensure editor is fully loaded
+
+    # Short delay for Svelte components to hydrate after image loads
+    # The hook fires when image.onload completes, but toolbar/canvas need
+    # a moment to mount. 50ms is sufficient vs the old 200ms guesswork.
     def inject_delayed():
         try:
             editor.web.eval(_cached_js_code)
@@ -63,16 +59,14 @@ def on_editor_load_note(editor: Editor) -> None:
             print(f"[Auto-IO Addon] Failed to inject JavaScript: {e}")
             import traceback
             traceback.print_exc()
-    
-    # Use QTimer for delayed execution
-    # 100ms is usually sufficient; slower systems may need more time
-    QTimer.singleShot(100, inject_delayed)
+
+    QTimer.singleShot(50, inject_delayed)
 
 
 def clear_cache() -> None:
     """
     Clear the JavaScript cache.
-    
+
     Call this if config changes and you want to rebuild the JavaScript.
     Useful for development/testing.
     """
