@@ -8,21 +8,29 @@ import os
 from .dependency_manager import ensure_dependencies
 
 if not ensure_dependencies():
-    # Show error dialog if dependencies failed to install
+    # Defer error dialog until Anki's main window is ready
+    # At import time, aqt.mw is not yet initialized
+    def _show_dep_error():
+        try:
+            from aqt import mw
+            import aqt.utils
+            if mw:
+                aqt.utils.showCritical(
+                    "Auto Image Occlusion Error",
+                    "Failed to install required dependencies.<br>"
+                    "Please check your internet connection and restart Anki."
+                )
+            else:
+                print("[Auto Image Occlusion] Failed to install dependencies")
+        except Exception:
+            print("[Auto Image Occlusion] Failed to install dependencies")
+
+    # Use QTimer to defer until the event loop is running
     try:
-        from aqt import mw
-        import aqt.utils
-        
-        def show_error():
-            aqt.utils.showCritical(
-                "Auto Image Occlusion Error",
-                "Failed to install required dependencies.<br>"
-                "Please check your internet connection and restart Anki."
-            )
-        
-        mw.taskTimer.singleShot(2000, show_error)
-    except Exception as e:
-        print(f"[Auto Image Occlusion] Failed to initialize addon: {e}")
+        from aqt.qt import QTimer
+        QTimer.singleShot(0, _show_dep_error)
+    except Exception:
+        print("[Auto Image Occlusion] Failed to install dependencies")
 
 from . import addon
 
