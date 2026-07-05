@@ -141,14 +141,17 @@ def install_package(package_name, version_spec, target_dir):
     ]
 
     try:
-        result = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            capture_output=True,
-            text=True,
-            timeout=PIP_TIMEOUT,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
         )
+        _, stderr_bytes = proc.communicate(timeout=PIP_TIMEOUT)
     except subprocess.TimeoutExpired:
+        proc.kill()
         raise Exception(f"pip install timed out after {PIP_TIMEOUT}s (check your network connection)")
 
-    if result.returncode != 0:
-        raise Exception(f"pip install failed: {result.stderr}")
+    if proc.returncode != 0:
+        stderr_text = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
+        raise Exception(f"pip install failed: {stderr_text}")
