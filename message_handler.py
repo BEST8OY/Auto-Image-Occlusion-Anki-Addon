@@ -6,7 +6,6 @@ Handles communication between JavaScript and Python via pycmd()
 import base64
 import io
 import json
-from PIL import Image
 from aqt.utils import tooltip
 
 from .ocr_engine import perform_ocr
@@ -106,6 +105,7 @@ def process_ocr_request(message, context):
             image_data = image_data.split(',', 1)[1]
         
         image_bytes = base64.b64decode(image_data)
+        from PIL import Image
         image = Image.open(io.BytesIO(image_bytes))
         
         # Perform OCR
