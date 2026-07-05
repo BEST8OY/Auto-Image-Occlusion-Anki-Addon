@@ -28,9 +28,9 @@ Access via: **Tools → Add-ons → [Auto Image Occlusion] → Config**
 - Minimum box dimensions in pixels
 
 ### vertical_merge_factor
-- **Default:** `1.5`
+- **Default:** `0.65`
 - **Range:** 0 to 3+
-- Merges text lines that are close vertically (within 1.5x average height)
+- Merges text lines that are close vertically (within 0.65x average height)
 - Handles multi-line labels like:
   ```
   Abductor pollicis
@@ -56,7 +56,7 @@ Access via: **Tools → Add-ons → [Auto Image Occlusion] → Config**
 {
   "tesseract_lang": "eng",
   "min_confidence": 48,
-  "vertical_merge_factor": 1.5
+  "vertical_merge_factor": 0.65
 }
 ```
 

@@ -1,6 +1,0 @@
-{
-  "packages": {
-    "pytesseract": "==0.3.13"
-  },
-  "description": "Dependencies for Auto Image Occlusion Addon - Pillow is bundled with Anki, only pytesseract is needed"
-}

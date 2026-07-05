@@ -1,157 +1,134 @@
 """
 Dependency Manager for Auto Image Occlusion Addon
-Automatically downloads and installs required packages on first startup.
 
-Note: Pillow is bundled with Anki, so we only install pytesseract here.
+Ensures pytesseract and Pillow are available in the addon's libs/ directory.
 """
 
-import sys
 import os
+import platform
+import shutil
 import subprocess
-import json
+import sys
 
-
-# Timeout for pip operations (seconds)
+DEPS = {"pytesseract": "0.3.13", "Pillow": "10.4.0"}
+LIBS_DIR = os.path.join(os.path.dirname(__file__), "libs")
 PIP_TIMEOUT = 30
 
-
-def get_libs_dir():
-    """Get the libs directory path"""
-    return os.path.join(os.path.dirname(__file__), "libs")
+_SYSTEM = platform.system()  # "Linux", "Darwin", "Windows"
 
 
-def get_requirements_file():
-    """Get the requirements.json path"""
-    return os.path.join(os.path.dirname(__file__), "requirements.json")
+def _python_executable(prefix):
+    """Return the Python executable path for a given prefix."""
+    if _SYSTEM == "Windows":
+        return os.path.join(prefix, "Scripts", "python.exe")
+    return os.path.join(prefix, "bin", "python3")
 
 
-def load_requirements():
-    """Load required packages from requirements.json"""
-    req_file = get_requirements_file()
+def _find_anki_python():
+    """Find the Python interpreter that is running this addon.
 
-    # Default requirements if file doesn't exist
-    default_requirements = {
-        "packages": {
-            "pytesseract": "==0.3.13"
-        }
-    }
+    Since we're already inside Anki's Python process, sys.prefix points to
+    the correct installation. We just need to locate the executable there.
+    """
+    for prefix in (sys.base_prefix, sys.prefix):
+        exe = _python_executable(prefix)
+        if os.path.isfile(exe):
+            return exe
 
-    if os.path.exists(req_file):
-        try:
-            with open(req_file, 'r') as f:
-                return json.load(f)
-        except Exception:
-            return default_requirements
+    # Fallback: walk up from addon dir looking for a python/ sibling folder
+    addon_dir = os.path.dirname(__file__)
+    for _ in range(6):
+        exe = _python_executable(os.path.join(addon_dir, "python"))
+        if os.path.isfile(exe):
+            return exe
+        addon_dir = os.path.dirname(addon_dir)
 
-    return default_requirements
+    return None
 
 
-def check_package_installed(package_name):
-    """Check if a package is already installed in libs"""
-    libs_dir = get_libs_dir()
+def _find_pip():
+    """Locate a pip command compatible with the running Python."""
+    anki_py = _find_anki_python()
+    if anki_py:
+        return [anki_py, "-m", "pip"]
 
-    # If libs directory doesn't exist yet, packages aren't installed
-    if not os.path.isdir(libs_dir):
+    # Last resort: system pip
+    for name in ("pip3", "pip"):
+        path = shutil.which(name)
+        if path:
+            return [path]
+    return None
+
+
+def _is_installed(package):
+    """Check if a package is already in libs/."""
+    normalized = package.lower().replace("-", "_")
+    if not os.path.isdir(LIBS_DIR):
         return False
-
-    # Normalize package name for comparison
-    package_normalized = package_name.lower().replace('-', '_')
-
-    # Check for dist-info directory (most reliable indicator)
-    # dist-info format: package_name-version.dist-info or package-name-version.dist-info
-    for item in os.listdir(libs_dir):
-        if item.endswith('.dist-info'):
-            # Extract package name (before the version)
-            dist_name = item.replace('.dist-info', '').rsplit('-', 1)[0]
-            dist_name_normalized = dist_name.lower().replace('-', '_')
-
-            if dist_name_normalized == package_normalized:
+    for entry in os.listdir(LIBS_DIR):
+        if entry.endswith(".dist-info"):
+            dist_name = entry.split("-", 1)[0].lower().replace("-", "_")
+            if dist_name == normalized:
                 return True
-
     return False
 
 
+def _install(package, version):
+    """Install a pinned package into libs/ via system pip."""
+    pip = _find_pip()
+    if not pip:
+        raise RuntimeError("pip not found — install it manually (pip3 install pip)")
+
+    cmd = pip + [
+        "install",
+        "--target", LIBS_DIR,
+        "--no-deps",
+        "--upgrade",
+        "--no-warn-script-location",
+        "--quiet",
+        f"{package}=={version}",
+    ]
+
+    proc = subprocess.Popen(
+        cmd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        _, stderr = proc.communicate(timeout=PIP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        raise RuntimeError(
+            f"pip timed out after {PIP_TIMEOUT}s — check your network"
+        )
+
+    if proc.returncode != 0:
+        msg = stderr.decode("utf-8", errors="replace") if stderr else ""
+        raise RuntimeError(f"pip install failed: {msg}")
+
+
 def ensure_dependencies():
-    """Ensure all required dependencies are installed. Downloads them on first startup."""
-    libs_dir = get_libs_dir()
+    """Ensure all dependencies are installed. Returns True on success."""
+    os.makedirs(LIBS_DIR, exist_ok=True)
 
-    # Create libs directory if it doesn't exist
-    os.makedirs(libs_dir, exist_ok=True)
+    if LIBS_DIR not in sys.path:
+        sys.path.append(LIBS_DIR)
 
-    # Add libs to sys.path (after existing entries to avoid shadowing Anki packages)
-    if libs_dir not in sys.path:
-        sys.path.append(libs_dir)
-
-    # Load requirements
-    requirements = load_requirements()
-    packages = requirements.get("packages", {})
-
-    if not packages:
-        return True  # No packages required
-
-    all_installed = True
-
-    for package_name, version_spec in packages.items():
-        # Check if package is already installed in libs
-        if check_package_installed(package_name):
+    for package, version in DEPS.items():
+        if _is_installed(package):
             try:
-                __import__(package_name)
+                __import__(package)
                 continue
             except ImportError:
                 pass
 
-        # Package not installed, need to download it
-        all_installed = False
-        print(f"[Auto Image Occlusion] Installing {package_name}...")
-
+        print(f"[Auto Image Occlusion] Installing {package}=={version}...")
         try:
-            install_package(package_name, version_spec, libs_dir)
-            print(f"[Auto Image Occlusion] ✓ {package_name} installed successfully")
+            _install(package, version)
+            print(f"[Auto Image Occlusion] Installed {package}")
         except Exception as e:
-            print(f"[Auto Image Occlusion] ✗ Failed to install {package_name}: {e}")
+            print(f"[Auto Image Occlusion] Failed to install {package}: {e}")
             return False
 
-    if all_installed:
-        print("[Auto Image Occlusion] All dependencies are available")
-
     return True
-
-
-def install_package(package_name, version_spec, target_dir):
-    """
-    Install a package to the target directory using pip.
-
-    Args:
-        package_name: Name of the package to install
-        version_spec: Version specification (e.g., "==0.3.13")
-        target_dir: Directory to install to
-    """
-    package_spec = f"{package_name}{version_spec}" if version_spec else package_name
-
-    cmd = [
-        sys.executable,
-        "-m",
-        "pip",
-        "install",
-        "--target", target_dir,
-        "--upgrade",
-        "--no-warn-script-location",
-        "--quiet",
-        package_spec
-    ]
-
-    try:
-        proc = subprocess.Popen(
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-        )
-        _, stderr_bytes = proc.communicate(timeout=PIP_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        raise Exception(f"pip install timed out after {PIP_TIMEOUT}s (check your network connection)")
-
-    if proc.returncode != 0:
-        stderr_text = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
-        raise Exception(f"pip install failed: {stderr_text}")
