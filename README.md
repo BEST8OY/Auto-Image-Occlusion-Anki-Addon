@@ -94,7 +94,7 @@ See [config.md](config.md) for detailed examples.
 
 ## Troubleshooting
 
-**"TesseractNotFoundError":** Tesseract isn't installed or not on PATH. Run `tesseract --version` to verify.
+**"TesseractNotFoundError":** Tesseract isn't installed or not on PATH. Run `tesseract --version` to verify. On macOS with Homebrew, set `tesseract_cmd` in config (e.g. `"/opt/homebrew/bin/tesseract"`).
 
 **"No text detected":** Lower `min_confidence` (try 35) and `min_area_percent` (try 0.00005). Ensure image has clear, readable text.
 

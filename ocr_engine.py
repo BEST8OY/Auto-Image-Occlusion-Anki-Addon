@@ -3,7 +3,32 @@ OCR Engine Module
 Handles all OCR processing using pytesseract with line-based detection
 """
 
+import os
+import platform
 from aqt import mw
+
+
+def _setup_tesseract(config):
+    """Configure pytesseract to find the tesseract binary."""
+    import pytesseract
+
+    # User-configured path takes priority
+    cmd = config.get("tesseract_cmd", "")
+    if cmd:
+        pytesseract.pytesseract.tesseract_cmd = cmd
+        return
+
+    # If pytesseract can already find it, nothing to do
+    from shutil import which
+    if which("tesseract"):
+        return
+
+    # Fallback: check common Homebrew paths on macOS
+    if platform.system() == "Darwin":
+        for path in ("/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract"):
+            if os.path.isfile(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                return
 
 
 def perform_ocr(image):
@@ -15,6 +40,7 @@ def perform_ocr(image):
 
     try:
         config = mw.addonManager.getConfig(__name__) or {}
+        _setup_tesseract(config)
         return _detect_lines(image, config)
     except Exception:
         import traceback

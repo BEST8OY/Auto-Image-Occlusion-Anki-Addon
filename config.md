@@ -9,6 +9,12 @@
 - Tesseract language code. Use `+` for multiple: `"eng+spa+fra"`
 - Requires matching language pack installed (see README)
 
+### tesseract_cmd
+- **Default:** `""` (auto-detect)
+- Full path to the tesseract binary. Only needed if Anki can't find it automatically.
+- macOS Homebrew example: `"/opt/homebrew/bin/tesseract"`
+- Windows example: `"C:\\Program Files\\Tesseract-OCR\\tesseract.exe"`
+
 ### min_confidence
 - **Default:** `48`
 - **Range:** 0-100

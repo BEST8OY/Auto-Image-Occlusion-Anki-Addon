@@ -1,5 +1,6 @@
 {
     "tesseract_lang": "eng",
+    "tesseract_cmd": "",
     "min_confidence": 48,
     "min_width": 4,
     "min_height": 4,
