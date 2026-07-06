@@ -1,122 +1,73 @@
 # Configuration
 
-Access via: **Tools → Add-ons → [Auto Image Occlusion] → Config**
+**Tools > Add-ons > Auto Image Occlusion > Config**
 
-## OCR Settings
+## Options
 
 ### tesseract_lang
 - **Default:** `"eng"`
-- Language for OCR. Use `+` for multiple: `"eng+fra"`
-- Requires language pack installed (see README)
+- Tesseract language code. Use `+` for multiple: `"eng+spa+fra"`
+- Requires matching language pack installed (see README)
 
 ### min_confidence
 - **Default:** `48`
 - **Range:** 0-100
-- Confidence threshold for OCR. Higher = fewer but more reliable detections.
-
----
-
-## Size Filters
-
-### min_area_percent
-- **Default:** `0.0001` (0.01% of image)
-- Minimum box area as percentage of image size
-- Increase to filter out small text/noise
+- OCR confidence threshold. Higher = fewer but more reliable detections.
 
 ### min_width / min_height
-- **Default:** `4` pixels each
-- Minimum box dimensions in pixels
+- **Default:** `4` pixels
+- Minimum box dimensions. Filter out tiny noise.
+
+### min_area_percent
+- **Default:** `0.0001` (0.01% of image area)
+- Minimum box area as fraction of total image size.
 
 ### vertical_merge_factor
 - **Default:** `0.65`
 - **Range:** 0 to 3+
-- Merges text lines that are close vertically (within 0.65x average height)
-- Handles multi-line labels like:
-  ```
-  Abductor pollicis
-         brevis muscle
-  ```
-- Set to `0` to disable merging (each line separate)
-- Increase to `2.5` for more aggressive merging
-
----
-
-## UI Settings
+- Lines vertically closer than this factor times the average line height get merged into one occlusion.
+- Set to `0` to disable merging.
+- Increase to `2.0`+ for anatomy diagrams with stacked labels.
 
 ### button_shortcut
-- **Default:** `"Ctrl+Shift+A"`
+- **Default:** `"Ctrl+Shift+X"`
 - Keyboard shortcut to trigger auto-detection
+- Format: modifier keys separated by `+` then the key (e.g. `"Ctrl+Shift+A"`, `"Cmd+Alt+D"`)
+- Supported modifiers: `Ctrl`, `Shift`, `Alt`, `Meta`/`Cmd`
 
----
+## Examples
 
-## Quick Examples
-
-**Default (works for most cases):**
+**Default (most cases):**
 ```json
-{
-  "tesseract_lang": "eng",
-  "min_confidence": 48,
-  "vertical_merge_factor": 0.65
-}
+{ "tesseract_lang": "eng", "min_confidence": 48, "vertical_merge_factor": 0.65, "button_shortcut": "Ctrl+Shift+X" }
 ```
 
-**For blurry/low-quality images (more detections):**
+**Low-quality images (more detections):**
 ```json
-{
-  "min_confidence": 35,
-  "min_area_percent": 0.00005
-}
+{ "min_confidence": 35, "min_area_percent": 0.00005 }
 ```
 
-**For high-quality images (fewer false positives):**
+**High-quality images (fewer false positives):**
 ```json
-{
-  "min_confidence": 60,
-  "min_area_percent": 0.001
-}
+{ "min_confidence": 60, "min_area_percent": 0.001 }
 ```
 
-**For non-English text (Spanish):**
+**Non-English (Spanish):**
 ```json
-{
-  "tesseract_lang": "spa",
-  "min_confidence": 48
-}
+{ "tesseract_lang": "spa" }
 ```
 
-**For mixed languages:**
+**Anatomy diagrams (aggressive merging):**
 ```json
-{
-  "tesseract_lang": "eng+spa+fra",
-  "min_confidence": 40
-}
+{ "vertical_merge_factor": 2.0 }
 ```
 
-**For anatomy diagrams with multi-line labels:**
+**No merging (each line separate):**
 ```json
-{
-  "vertical_merge_factor": 2.0
-}
+{ "vertical_merge_factor": 0 }
 ```
 
-**Disable line merging (each line separate):**
+**Custom shortcut (macOS Cmd):**
 ```json
-{
-  "vertical_merge_factor": 0
-}
+{ "button_shortcut": "Cmd+Alt+D" }
 ```
-
----
-
-## Technical Details
-
-**Detection Method:**
-- Uses PSM 12 (SPARSE_TEXT with OSD) - optimized for scattered text
-- Line-based grouping for reliable granularity
-- Vertical merging for multi-line labels (configurable)
-- Each text block (single or multi-line) becomes a separate occlusion
-- Collision detection prevents duplicates
-
-**More Information:**
-- Full documentation: See README.md
-- Installation guide: See README.md (Installation section)

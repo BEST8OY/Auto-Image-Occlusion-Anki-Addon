@@ -10,7 +10,10 @@ import shutil
 import subprocess
 import sys
 
-DEPS = {"pytesseract": "0.3.13", "Pillow": "10.4.0"}
+DEPS = {
+    "pytesseract": {"version": "0.3.13", "import_name": "pytesseract"},
+    "Pillow": {"version": "10.4.0", "import_name": "PIL"},
+}
 LIBS_DIR = os.path.join(os.path.dirname(__file__), "libs")
 PIP_TIMEOUT = 30
 
@@ -115,17 +118,17 @@ def ensure_dependencies():
     if LIBS_DIR not in sys.path:
         sys.path.append(LIBS_DIR)
 
-    for package, version in DEPS.items():
+    for package, info in DEPS.items():
         if _is_installed(package):
             try:
-                __import__(package)
+                __import__(info["import_name"])
                 continue
             except ImportError:
                 pass
 
-        print(f"[Auto Image Occlusion] Installing {package}=={version}...")
+        print(f"[Auto Image Occlusion] Installing {package}=={info['version']}...")
         try:
-            _install(package, version)
+            _install(package, info["version"])
             print(f"[Auto Image Occlusion] Installed {package}")
         except Exception as e:
             print(f"[Auto Image Occlusion] Failed to install {package}: {e}")

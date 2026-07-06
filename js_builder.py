@@ -9,6 +9,8 @@ Architecture:
 - Idempotent design (safe to run multiple times)
 """
 
+import json
+
 
 def build_injection_javascript(config):
     """
@@ -39,7 +41,8 @@ def build_injection_javascript(config):
                 topPaddingPercent: 0.10, // Add 10% padding on top of detected boxes
                 ocrTimeout: 30000,       // 30 second timeout for OCR operations
                 debounceDelay: 100,      // Debounce delay for MutationObserver (ms)
-                resetDelay: 200          // Delay after IO reset before re-adding button (ms)
+                resetDelay: 200,         // Delay after IO reset before re-adding button (ms)
+                shortcut: {json.dumps(config.get('button_shortcut', 'Ctrl+Shift+A'))}
             }}
         }};
     }}
@@ -165,7 +168,7 @@ def build_injection_javascript(config):
         const btn = document.createElement('button');
         btn.className = 'top-tool-icon-button border-radius';
         btn.id = 'auto-detect-btn';
-        btn.title = 'Auto-detect text regions (Ctrl+Shift+A)';
+        btn.title = `Auto-detect text regions (${{addon.config.shortcut}})`;
         btn.type = 'button';
 
         // Ensure button matches the height of other toolbar buttons
@@ -210,9 +213,27 @@ def build_injection_javascript(config):
         }}
     }}
 
-    // Global keyboard shortcut (Ctrl+Shift+A)
+    // Global keyboard shortcut (configurable)
+    function parseShortcut(str) {{
+        const parts = str.toLowerCase().split('+');
+        const key = parts.pop();
+        return {{
+            ctrl: parts.includes('ctrl'),
+            shift: parts.includes('shift'),
+            alt: parts.includes('alt'),
+            meta: parts.includes('meta') || parts.includes('cmd'),
+            key: key
+        }};
+    }}
+
+    const shortcut = parseShortcut(addon.config.shortcut);
+
     document.addEventListener('keydown', (e) => {{
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {{
+        if (e.ctrlKey === shortcut.ctrl
+            && e.shiftKey === shortcut.shift
+            && e.altKey === shortcut.alt
+            && e.metaKey === shortcut.meta
+            && e.key.toLowerCase() === shortcut.key) {{
             e.preventDefault();
             const btn = document.getElementById('auto-detect-btn');
             if (btn && !btn.disabled) {{
