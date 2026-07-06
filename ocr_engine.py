@@ -23,12 +23,22 @@ def _setup_tesseract(config):
     if which("tesseract"):
         return
 
-    # Fallback: check common Homebrew paths on macOS
-    if platform.system() == "Darwin":
-        for path in ("/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract"):
-            if os.path.isfile(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                return
+    # Fallback: check common install paths per platform
+    system = platform.system()
+    if system == "Darwin":
+        candidates = ("/opt/homebrew/bin/tesseract", "/usr/local/bin/tesseract")
+    elif system == "Windows":
+        candidates = (
+            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        )
+    else:
+        candidates = ()
+
+    for path in candidates:
+        if os.path.isfile(path):
+            pytesseract.pytesseract.tesseract_cmd = path
+            return
 
 
 def perform_ocr(image):
