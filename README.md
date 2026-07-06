@@ -73,6 +73,7 @@ Restart Anki. Dependencies (pytesseract, Pillow) install automatically on first 
 | Option | Default | Description |
 |--------|---------|-------------|
 | `tesseract_lang` | `"eng"` | Language code. Use `"eng+fra"` for multiple |
+| `tesseract_cmd` | `""` | Path to tesseract binary. Auto-detects if empty |
 | `min_confidence` | `48` | OCR confidence threshold (0-100). Lower = more detections |
 | `min_width` | `4` | Minimum box width in pixels |
 | `min_height` | `4` | Minimum box height in pixels |
