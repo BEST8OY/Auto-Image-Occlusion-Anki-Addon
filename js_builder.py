@@ -43,7 +43,7 @@ def build_injection_javascript(config):
                 debounceDelay: 100,      // Debounce delay for MutationObserver (ms)
                 resetDelay: 200,         // Delay after IO reset before re-adding button (ms)
                 shortcut: {json.dumps(config.get('button_shortcut', 'Ctrl+Shift+A'))},
-                verticalMergeFactor: {float(config.get('vertical_merge_factor', 0.65))}
+                verticalMergeFactor: {float(config.get('vertical_merge_factor', 0.8))}
             }}
         }};
     }}
@@ -321,7 +321,7 @@ def build_injection_javascript(config):
         let popover = null;
 
         function updateMergeFactor(val) {{
-            const clamped = Math.max(0, Math.min(2, Math.round(val * 100) / 100));
+            const clamped = Math.max(0, Math.min(1.5, Math.round(val * 100) / 100));
             addon.config.verticalMergeFactor = clamped;
             const label = document.getElementById('auto-detect-merge-label');
             if (label) label.textContent = clamped.toFixed(2);
@@ -376,11 +376,11 @@ def build_injection_javascript(config):
                     <button type="button" class="auto-io-preset-item" data-val="0.4">
                         <span>Tight Spacing</span><span style="opacity: 0.5;">0.40</span>
                     </button>
-                    <button type="button" class="auto-io-preset-item" data-val="0.65">
-                        <span>Standard (Default)</span><span style="opacity: 0.5;">0.65</span>
+                    <button type="button" class="auto-io-preset-item" data-val="0.8">
+                        <span>Standard (Default)</span><span style="opacity: 0.5;">0.80</span>
                     </button>
-                    <button type="button" class="auto-io-preset-item" data-val="1.0">
-                        <span>Wide Spacing</span><span style="opacity: 0.5;">1.00</span>
+                    <button type="button" class="auto-io-preset-item" data-val="1.2">
+                        <span>Wide Spacing</span><span style="opacity: 0.5;">1.20</span>
                     </button>
                     <button type="button" class="auto-io-preset-item" data-val="1.5">
                         <span>Aggressive Merge</span><span style="opacity: 0.5;">1.50</span>
@@ -392,8 +392,8 @@ def build_injection_javascript(config):
                         <span class="auto-io-fine-val" style="font-weight: 600; color: var(--fg, inherit);">${{Number(addon.config.verticalMergeFactor).toFixed(2)}}</span>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="range" class="auto-io-slider" min="0" max="2" step="0.05" value="${{Number(addon.config.verticalMergeFactor).toFixed(2)}}" style="flex: 1; height: 4px; accent-color: var(--border-focus, #0a84ff); cursor: pointer;">
-                        <input type="number" class="auto-io-num-input" step="0.05" min="0" max="2" value="${{Number(addon.config.verticalMergeFactor).toFixed(2)}}" style="width: 48px; height: 24px; background: var(--canvas-inset, var(--canvas, rgba(128, 128, 128, 0.15))); border: 1px solid var(--border-subtle, #48484a); border-radius: 4px; color: var(--fg, inherit); text-align: center; font-size: 12px; font-weight: 600; outline: none;">
+                        <input type="range" class="auto-io-slider" min="0" max="1.5" step="0.01" value="${{Number(addon.config.verticalMergeFactor).toFixed(2)}}" style="flex: 1; height: 4px; accent-color: var(--border-focus, #0a84ff); cursor: pointer;">
+                        <input type="number" class="auto-io-num-input" step="0.01" min="0" max="1.5" value="${{Number(addon.config.verticalMergeFactor).toFixed(2)}}" style="width: 48px; height: 24px; background: var(--canvas-inset, var(--canvas, rgba(128, 128, 128, 0.15))); border: 1px solid var(--border-subtle, #48484a); border-radius: 4px; color: var(--fg, inherit); text-align: center; font-size: 12px; font-weight: 600; outline: none;">
                     </div>
                 </div>
             `;
@@ -424,6 +424,9 @@ def build_injection_javascript(config):
                 if (!isNaN(val)) updateMergeFactor(val);
             }});
 
+            slider.addEventListener('wheel', handleWheelAdjust, {{ passive: false }});
+            numInput.addEventListener('wheel', handleWheelAdjust, {{ passive: false }});
+
             document.body.appendChild(popover);
             return popover;
         }}
@@ -452,14 +455,30 @@ def build_injection_javascript(config):
 
         mergeBtn.addEventListener('click', togglePopover);
 
-        // Wheel scrolling on mergeBtn adjusts by 0.05
-        mergeBtn.addEventListener('wheel', (e) => {{
+        // Smooth and damped mouse wheel scroll adjustment (0.01 per notch/gesture)
+        let wheelDeltaAcc = 0;
+        let wheelTimer = null;
+
+        function handleWheelAdjust(e) {{
             e.preventDefault();
             e.stopPropagation();
-            const current = parseFloat(addon.config.verticalMergeFactor) || 0;
-            const delta = e.deltaY < 0 ? 0.05 : -0.05;
-            updateMergeFactor(current + delta);
-        }}, {{ passive: false }});
+            const normalizedDelta = e.deltaMode === 1 ? e.deltaY * 30 : (e.deltaMode === 2 ? e.deltaY * 300 : e.deltaY);
+            wheelDeltaAcc += normalizedDelta;
+
+            clearTimeout(wheelTimer);
+            wheelTimer = setTimeout(() => {{ wheelDeltaAcc = 0; }}, 200);
+
+            const threshold = 60;
+            if (Math.abs(wheelDeltaAcc) >= threshold) {{
+                const steps = Math.trunc(wheelDeltaAcc / threshold);
+                wheelDeltaAcc -= steps * threshold;
+                const stepSize = e.shiftKey ? 0.05 : 0.01;
+                const current = parseFloat(addon.config.verticalMergeFactor) || 0;
+                updateMergeFactor(current - (steps * stepSize));
+            }}
+        }}
+
+        mergeBtn.addEventListener('wheel', handleWheelAdjust, {{ passive: false }});
 
         // Close on outside click or escape
         document.addEventListener('click', (e) => {{
