@@ -29,11 +29,15 @@
 - Minimum box area as fraction of total image size.
 
 ### vertical_merge_factor
-- **Default:** `0.65`
-- **Range:** 0 to 3+
-- Lines vertically closer than this factor times the average line height get merged into one occlusion.
-- Set to `0` to disable merging.
-- Increase to `2.0`+ for anatomy diagrams with stacked labels.
+- **Default:** `0.8`
+- **Range:** `0.0` to `1.5` (Recommended: `0.6` to `1.0`)
+- Maximum vertical gap allowed between lines of the same label, expressed as a multiple of line height (`gap <= factor * line_height`).
+- Multi-line labels are intelligently unified using universal typography continuation rules (lowercase continuation, unclosed parentheses, and hyphens).
+- Set to `0` to disable multi-line merging entirely (each line becomes an individual occlusion).
+
+### box_padding
+- **Default:** `4` pixels
+- Symmetric padding in pixels around detected text boxes to prevent glyph clipping.
 
 ### button_shortcut
 - **Default:** `"Ctrl+Shift+X"`
@@ -45,7 +49,7 @@
 
 **Default (most cases):**
 ```json
-{ "tesseract_lang": "eng", "min_confidence": 48, "vertical_merge_factor": 0.65, "button_shortcut": "Ctrl+Shift+X" }
+{ "tesseract_lang": "eng", "min_confidence": 48, "vertical_merge_factor": 0.8, "button_shortcut": "Ctrl+Shift+X" }
 ```
 
 **Low-quality images (more detections):**
@@ -63,9 +67,9 @@
 { "tesseract_lang": "spa" }
 ```
 
-**Anatomy diagrams (aggressive merging):**
+**Loose line spacing (diagrams with wider gaps):**
 ```json
-{ "vertical_merge_factor": 2.0 }
+{ "vertical_merge_factor": 1.2 }
 ```
 
 **No merging (each line separate):**

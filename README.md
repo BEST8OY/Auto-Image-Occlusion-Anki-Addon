@@ -66,7 +66,8 @@ Restart Anki. The addon is ready to use immediately with zero setup.
     "min_width": 4,
     "min_height": 4,
     "min_area_percent": 0.0001,
-    "vertical_merge_factor": 0.65,
+    "vertical_merge_factor": 0.8,
+    "box_padding": 4,
     "button_shortcut": "Ctrl+Shift+X"
 }
 ```
@@ -79,7 +80,8 @@ Restart Anki. The addon is ready to use immediately with zero setup.
 | `min_width` | `4` | Minimum box width in pixels |
 | `min_height` | `4` | Minimum box height in pixels |
 | `min_area_percent` | `0.0001` | Minimum box area as fraction of image |
-| `vertical_merge_factor` | `0.65` | Merge lines within this factor of avg height. `0` to disable |
+| `vertical_merge_factor` | `0.8` | Max vertical gap as multiple of line height. `0` to disable |
+| `box_padding` | `4` | Symmetric padding in pixels around detected text boxes |
 | `button_shortcut` | `"Ctrl+Shift+X"` | Keyboard shortcut (modifiers + key) |
 
 See [config.md](config.md) for detailed examples.
