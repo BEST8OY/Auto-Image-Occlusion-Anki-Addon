@@ -10,9 +10,10 @@ Automatically detect text regions in images and create Image Occlusion shapes wi
 ## Features
 
 - One-click text detection via magic wand button in the IO toolbar
+- Changeable **Merge Factor** input right next to the magic wand (scroll wheel or type to adjust line-grouping tolerance on the fly)
 - Keyboard shortcut: `Ctrl+Shift+X`
 - Skips existing occlusions (collision detection)
-- Merges multi-line labels (configurable)
+- Merges multi-line labels (configurable & dynamically adjustable)
 - Works with 100+ Tesseract languages
 - Zero Python dependencies (no Pillow, no pytesseract, no pip downloads)
 

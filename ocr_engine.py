@@ -195,12 +195,13 @@ def _run_tesseract(tesseract_cmd, image_path, lang="eng", psm=12, timeout=30):
     return proc.stdout
 
 
-def perform_ocr(image_input, img_size=None):
+def perform_ocr(image_input, img_size=None, custom_merge_factor=None):
     """Run native Tesseract OCR on an image and return bounding boxes.
 
     Args:
         image_input: bytes (raw image bytes) or str/Path (image file path)
         img_size: optional tuple of (width, height). Inferred if not provided.
+        custom_merge_factor: optional float overriding vertical_merge_factor.
     """
     config = {}
     if mw and hasattr(mw, "addonManager") and mw.addonManager:
@@ -249,7 +250,20 @@ def perform_ocr(image_input, img_size=None):
         lines = _group_words_into_lines(data)
         lines = _filter_lines(lines, img_size, config)
         regions = _lines_to_regions(lines)
-        regions = _merge_vertically_close(regions, config.get("vertical_merge_factor", 0.65))
+
+        if custom_merge_factor is not None:
+            effective_merge_factor = max(0.0, float(custom_merge_factor))
+            if mw and hasattr(mw, "addonManager") and mw.addonManager:
+                try:
+                    if round(config.get("vertical_merge_factor", 0.65), 2) != round(effective_merge_factor, 2):
+                        config["vertical_merge_factor"] = round(effective_merge_factor, 2)
+                        mw.addonManager.writeConfig(__name__, config)
+                except Exception:
+                    pass
+        else:
+            effective_merge_factor = config.get("vertical_merge_factor", 0.65)
+
+        regions = _merge_vertically_close(regions, effective_merge_factor)
         return regions
 
     except Exception as e:

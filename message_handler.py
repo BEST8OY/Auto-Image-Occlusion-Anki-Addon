@@ -89,7 +89,14 @@ def _process_ocr(message, context):
         except Exception as e:
             raise RuntimeError(f"Failed to decode image data: {e}") from e
 
-        regions = perform_ocr(raw_bytes, img_size=(img_w, img_h))
+        merge_factor = data.get('mergeFactor')
+        if merge_factor is not None:
+            try:
+                merge_factor = float(merge_factor)
+            except (ValueError, TypeError):
+                merge_factor = None
+
+        regions = perform_ocr(raw_bytes, img_size=(img_w, img_h), custom_merge_factor=merge_factor)
 
         if existing and img_w > 0 and img_h > 0:
             regions = filter_colliding_regions(regions, existing, img_w, img_h)
