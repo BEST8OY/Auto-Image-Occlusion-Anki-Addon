@@ -14,7 +14,7 @@ Automatically detect text regions in images and create Image Occlusion shapes wi
 - Skips existing occlusions (collision detection)
 - Merges multi-line labels (configurable)
 - Works with 100+ Tesseract languages
-- Auto-installs pytesseract and Pillow on first run
+- Zero Python dependencies (no Pillow, no pytesseract, no pip downloads)
 
 ## Installation
 
@@ -43,7 +43,7 @@ brew install tesseract
 - macOS: `~/Library/Application Support/Anki2/addons21/`
 - Linux: `~/.local/share/Anki2/addons21/`
 
-Restart Anki. Dependencies (pytesseract, Pillow) install automatically on first launch.
+Restart Anki. The addon is ready to use immediately with zero setup.
 
 ## Usage
 
@@ -106,21 +106,18 @@ See [config.md](config.md) for detailed examples.
 ## Architecture
 
 ```
-__init__.py             # Entry point, dependency setup
+__init__.py             # Addon entry point
 addon.py                # Hook registration
 editor_integration.py   # JS injection via editor_mask_editor_did_load_image hook
 js_builder.py           # Generates injected JavaScript (button, OCR flow, canvas interaction)
 message_handler.py      # pycmd() message routing (JS <-> Python)
-ocr_engine.py           # Tesseract wrapper (PSM 12, line grouping, merging)
-dependency_manager.py   # Auto-installs pytesseract + Pillow into libs/
+ocr_engine.py           # Native Tesseract runner (PSM 12, line grouping, merging)
 ```
 
 ## Credits
 
 - [logseq-anki-sync](https://github.com/debanjandhar12/logseq-anki-sync) - Original auto-detection concept
 - [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) - Text detection engine
-- [pytesseract](https://github.com/madmaze/pytesseract) - Python wrapper
-- [Pillow](https://python-pillow.org/) - Image processing
 - Magic wand icon: [Material Design Icons](https://materialdesignicons.com/) (mdiAutoFix)
 
 ## License

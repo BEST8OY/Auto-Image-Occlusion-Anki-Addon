@@ -18,6 +18,7 @@ lib/
 lib64/
 # Note: libs/ is created on first startup, so we don't commit it
 libs/
+*.ankiaddon
 parts/
 sdist/
 var/

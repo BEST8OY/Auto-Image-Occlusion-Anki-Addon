@@ -6,9 +6,16 @@ Handles communication between JavaScript and Python via pycmd()
 import base64
 import io
 import json
-from aqt.utils import tooltip
+try:
+    from aqt.utils import tooltip
+except ImportError:
+    def tooltip(msg, *args, **kwargs):
+        pass
 
-from .ocr_engine import perform_ocr
+try:
+    from .ocr_engine import perform_ocr
+except ImportError:
+    from ocr_engine import perform_ocr
 
 PREFIX_OCR = "autoDetectOCR:"
 PREFIX_DONE = "autoDetect:"
@@ -77,20 +84,23 @@ def _process_ocr(message, context):
         if ',' in image_data:
             image_data = image_data.split(',', 1)[1]
 
-        from PIL import Image
-        image = Image.open(io.BytesIO(base64.b64decode(image_data)))
+        try:
+            raw_bytes = base64.b64decode(image_data)
+        except Exception as e:
+            raise RuntimeError(f"Failed to decode image data: {e}") from e
 
-        regions = perform_ocr(image)
+        regions = perform_ocr(raw_bytes, img_size=(img_w, img_h))
 
         if existing and img_w > 0 and img_h > 0:
             regions = filter_colliding_regions(regions, existing, img_w, img_h)
 
         _send_to_js(context, {'regions': regions})
 
-    except Exception:
+    except Exception as e:
         import traceback
         traceback.print_exc()
-        _send_to_js(context, {'error': traceback.format_exc()})
+        err_msg = str(e) if isinstance(e, RuntimeError) else traceback.format_exc()
+        _send_to_js(context, {'error': err_msg})
 
 
 def _show_completion(message):
