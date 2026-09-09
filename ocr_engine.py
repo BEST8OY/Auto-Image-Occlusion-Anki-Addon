@@ -7,6 +7,7 @@ Zero external Python dependencies required (no Pillow, no pytesseract).
 import csv
 import os
 import platform
+import re
 import shutil
 import struct
 import subprocess
@@ -16,6 +17,8 @@ try:
     from aqt import mw
 except ImportError:
     mw = None
+
+
 
 
 def _get_tesseract_cmd(config=None):
@@ -247,23 +250,21 @@ def perform_ocr(image_input, img_size=None, custom_merge_factor=None):
         tsv_text = _run_tesseract(tesseract_cmd, image_path, lang=lang, psm=psm)
         data = _parse_tsv_to_dict(tsv_text)
 
-        lines = _group_words_into_lines(data)
-        lines = _filter_lines(lines, img_size, config)
-        regions = _lines_to_regions(lines)
+        lines = _parse_and_clean_lines(data, img_size, config)
 
         if custom_merge_factor is not None:
-            effective_merge_factor = max(0.0, float(custom_merge_factor))
+            effective_merge_factor = max(0.0, min(1.5, float(custom_merge_factor)))
             if mw and hasattr(mw, "addonManager") and mw.addonManager:
                 try:
-                    if round(config.get("vertical_merge_factor", 0.65), 2) != round(effective_merge_factor, 2):
+                    if round(config.get("vertical_merge_factor", 0.8), 2) != round(effective_merge_factor, 2):
                         config["vertical_merge_factor"] = round(effective_merge_factor, 2)
                         mw.addonManager.writeConfig(__name__, config)
                 except Exception:
                     pass
         else:
-            effective_merge_factor = config.get("vertical_merge_factor", 0.65)
+            effective_merge_factor = max(0.0, min(1.5, float(config.get("vertical_merge_factor", 0.8))))
 
-        regions = _merge_vertically_close(regions, effective_merge_factor)
+        regions = _merge_lines_syntax_aware(lines, effective_merge_factor, img_size, config)
         return regions
 
     except Exception as e:
@@ -398,3 +399,274 @@ def _merge_vertically_close(regions, factor):
             })
 
     return merged
+
+
+def _clean_token_text(text):
+    """Clean leader line dots, dashes, and bullet marks from OCR tokens."""
+    t = text.strip()
+    # Strip leading leader line artifacts: dots, dashes, underscores, commas, tildes
+    t = re.sub(r'^[_\-.,~:;\'"|/\\`^+=*]+', '', t)
+    # Strip trailing leader line artifacts
+    t = re.sub(r'[_\-.,~:;\'"|/\\`^+=*]+$', '', t)
+    # Fix case where leader line dot touched the first capital letter (e.g. 'vPostcentral' -> 'Postcentral')
+    t = re.sub(r'^[a-z]([A-Z][a-z]{2,})', r'\1', t)
+    return t
+
+
+def _parse_and_clean_lines(data, img_size, config):
+    """Group words into lines using line-level confidence anchoring,
+
+    stripping leader-line bounding box inflation and diagram artifacts.
+    """
+    img_w, img_h = img_size
+    raw_lines = {}
+
+    for i in range(len(data['text'])):
+        raw_t = data['text'][i].strip()
+        conf = data['conf'][i]
+
+        if not raw_t or conf < 0:
+            continue
+
+        letters = [c for c in raw_t if c.isalpha()]
+        if not letters:
+            continue
+
+        cleaned_t = _clean_token_text(raw_t)
+        if not cleaned_t:
+            continue
+
+        key = (data['block_num'][i], data['par_num'][i], data['line_num'][i])
+        raw_lines.setdefault(key, []).append({
+            'raw_text': raw_t,
+            'text': cleaned_t,
+            'conf': conf,
+            'left': data['left'][i],
+            'top': data['top'][i],
+            'width': data['width'][i],
+            'height': data['height'][i],
+        })
+
+    lines = []
+
+    for key, words in raw_lines.items():
+        if not words:
+            continue
+
+        max_conf = max(w['conf'] for w in words)
+        total_letters = sum(sum(1 for c in w['text'] if c.isalpha()) for w in words)
+
+        # Discard lines that are clearly diagram noise (e.g. creases, shading)
+        if max_conf < 54 and total_letters < 5:
+            continue
+
+        words.sort(key=lambda w: w['left'])
+
+        # Keep words that belong to the line:
+        # High confidence anchor (>= 70) allows catching lower-contrast adjacent words (e.g. touched by dots)
+        valid_words = []
+        for w in words:
+            w_letters = sum(1 for c in w['text'] if c.isalpha())
+            if max_conf >= 70:
+                if w['conf'] >= 15:
+                    valid_words.append(w)
+            else:
+                if w['conf'] >= 50 and w_letters >= 3:
+                    valid_words.append(w)
+
+        if not valid_words:
+            continue
+
+        # Filter height outliers (e.g. leader line artifact tick 'y' with > 2.3x median height)
+        if len(valid_words) > 1:
+            heights = sorted(w['height'] for w in valid_words)
+            med_h = heights[len(heights) // 2]
+            size_filtered = []
+            for w in valid_words:
+                if w['height'] > med_h * 2.3 and len(w['text']) <= 2:
+                    continue
+                size_filtered.append(w)
+            valid_words = size_filtered
+
+        if not valid_words:
+            continue
+
+        # Filter horizontal outliers (stray marks far from the actual line text)
+        if len(valid_words) > 1:
+            clean_words = [valid_words[0]]
+            avg_word_w = sum(w['width'] for w in valid_words) / len(valid_words)
+            for k in range(1, len(valid_words)):
+                gap = valid_words[k]['left'] - (valid_words[k - 1]['left'] + valid_words[k - 1]['width'])
+                if gap > 4.0 * avg_word_w and len(valid_words[k]['text']) <= 2 and valid_words[k]['conf'] < 70:
+                    continue
+                clean_words.append(valid_words[k])
+            valid_words = clean_words
+
+        if not valid_words:
+            continue
+
+        # Reject standalone single-character lines unless it has very high confidence
+        if len(valid_words) == 1 and len(valid_words[0]['text']) == 1:
+            if valid_words[0]['conf'] < 85:
+                continue
+
+        l = min(w['left'] for w in valid_words)
+        t = min(w['top'] for w in valid_words)
+        r = max(w['left'] + w['width'] for w in valid_words)
+        b = max(w['top'] + w['height'] for w in valid_words)
+
+        line_text = ' '.join(w['text'] for w in valid_words)
+        avg_conf = sum(w['conf'] for w in valid_words) / len(valid_words)
+
+        lines.append({
+            'text': line_text,
+            'conf': avg_conf,
+            'left': l,
+            'top': t,
+            'width': r - l,
+            'height': b - t,
+            'right': r,
+            'bottom': b,
+            'words': valid_words,
+        })
+
+    return lines
+
+
+def _should_merge_lines(l1, l2, factor):
+    """Determine whether l2 is a continuation of l1 (multi-line label).
+
+    l1 is physically above l2.
+    """
+    if factor <= 0.0:
+        return False
+
+    t1 = l1['text'].strip()
+    t2 = l2['text'].strip()
+
+    if not t1 or not t2:
+        return False
+
+    avg_h = (l1['height'] + l2['height']) / 2.0
+    gap = l2['top'] - l1['bottom']
+
+    # Max vertical gap directly proportional to average line height
+    max_gap = avg_h * factor
+    if gap < -0.35 * avg_h or gap > max_gap:
+        return False
+
+    min_w = min(l1['width'], l2['width'])
+    left_diff = abs(l1['left'] - l2['left'])
+    right_diff = abs(l1['right'] - l2['right'])
+    center1 = (l1['left'] + l1['right']) / 2.0
+    center2 = (l2['left'] + l2['right']) / 2.0
+    center_diff = abs(center1 - center2)
+
+    overlap_l = max(l1['left'], l2['left'])
+    overlap_r = min(l1['right'], l2['right'])
+    overlap = max(0, overlap_r - overlap_l)
+
+    # Must share alignment edge or have substantial horizontal overlap
+    aligned = (
+        left_diff <= max(24, 0.22 * min_w) or
+        right_diff <= max(24, 0.22 * min_w) or
+        center_diff <= max(24, 0.22 * min_w) or
+        overlap >= 0.40 * min_w
+    )
+    if not aligned:
+        return False
+
+    # Universal Typographic Continuation Rules:
+    first_char_l2 = None
+    for ch in t2:
+        if ch.isalpha():
+            first_char_l2 = ch
+            break
+
+    # 1. Lowercase continuation: In standard typography, wrapped continuation lines begin with lowercase
+    if first_char_l2 and first_char_l2.islower():
+        return True
+
+    # 2. Unclosed parenthesis / bracket (e.g. "communis (terminal" -> "tendons)")
+    if t1.count('(') > t1.count(')') or t1.count('[') > t1.count(']'):
+        return True
+
+    # 3. Line 2 starts with closing punctuation or bracket
+    if t2.startswith(')') or t2.startswith(']'):
+        return True
+
+    # 4. Hyphenation continuation (e.g. "Supra-" -> "marginal g.")
+    raw_last = l1['words'][-1]['raw_text']
+    if (raw_last.endswith('-') or raw_last.endswith('—') or t1.endswith('-')) and (first_char_l2 and first_char_l2.islower()):
+        return True
+
+    # Otherwise: Both lines are independent capitalized items or unrelated! DO NOT MERGE!
+    return False
+
+
+def _merge_lines_syntax_aware(lines, factor, img_size, config):
+    """Merge multi-line labels using syntax-aware continuation analysis
+
+    and disjoint-set grouping.
+    """
+    if not lines:
+        return []
+
+    img_w, img_h = img_size
+    padding_px = config.get('box_padding', 4)
+
+    n = len(lines)
+    parent = list(range(n))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    # Sort lines top-to-bottom
+    sorted_indices = sorted(range(n), key=lambda i: lines[i]['top'])
+    for idx_a in range(len(sorted_indices)):
+        i = sorted_indices[idx_a]
+        l1 = lines[i]
+        for idx_b in range(idx_a + 1, len(sorted_indices)):
+            j = sorted_indices[idx_b]
+            l2 = lines[j]
+            if l2['top'] - l1['bottom'] > 2.0 * max(l1['height'], l2['height']):
+                break
+            if _should_merge_lines(l1, l2, factor):
+                union(i, j)
+
+    groups = {}
+    for i in range(n):
+        root = find(i)
+        groups.setdefault(root, []).append(lines[i])
+
+    results = []
+    for g in groups.values():
+        top_y = min(l['top'] for l in g)
+        bottom_y = max(l['bottom'] for l in g)
+        left_x = min(l['left'] for l in g)
+        right_x = max(l['right'] for l in g)
+        box_w = right_x - left_x
+        box_h = bottom_y - top_y
+
+        # Symmetric padding
+        pad_l = max(0, left_x - padding_px)
+        pad_t = max(0, top_y - padding_px)
+        pad_r = min(img_w, right_x + padding_px)
+        pad_b = min(img_h, bottom_y + padding_px)
+
+        results.append({
+            'left': pad_l,
+            'top': pad_t,
+            'width': pad_r - pad_l,
+            'height': pad_b - pad_t,
+        })
+
+    return results
